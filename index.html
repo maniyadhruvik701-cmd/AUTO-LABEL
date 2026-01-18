@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoLabel Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="dashboard-container">
+        <header class="dashboard-nav">
+            <h2>AutoLabel Dashboard</h2>
+            <div class="user-profile">
+                <div class="avatar" id="avatar-text">AL</div>
+                <div style="display: flex; flex-direction: column;">
+                    <span id="user-display-name" style="font-weight: 600; font-size: 14px;">TSC Printer Ready</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Upload Column -->
+            <section class="upload-section">
+                <h3>Upload Document</h3>
+                <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">PDF files only</p>
+
+                <div id="upload-area" class="upload-area">
+                    <div class="upload-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                        </svg>
+                    </div>
+                    <strong>Click or drag to select</strong>
+                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">No file size limit</span>
+                    <input type="file" id="file-input" accept="application/pdf" hidden multiple>
+                </div>
+
+                <div id="staged-files-container"
+                    style="display: none; margin-top: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                    <input type="text" id="batch-name-input" placeholder="Enter Batch Name (e.g. Batch #1)"
+                        style="width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 8px; color: white; margin-bottom: 15px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="staged-count" style="font-weight: 600; color: var(--primary);">0 Files Selected</span>
+                        <button id="upload-btn" class="bulk-btn print" style="margin: 0;">Upload All as Batch</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History Column -->
+            <section class="history-section">
+                <div class="history-header">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" id="select-all" class="custom-checkbox">
+                        <h3>Recent History</h3>
+                    </div>
+                    <div class="bulk-actions" id="bulk-actions" style="display: none;">
+                        <div id="print-progress"
+                            style="display:none; align-items:center; gap:10px; margin-right:15px; background: rgba(255,255,255,0.05); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                            <div
+                                style="width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div id="progress-bar"
+                                    style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease;">
+                                </div>
+                            </div>
+                            <span id="progress-text"
+                                style="font-size: 12px; color: var(--text-muted); min-width: 60px;">0 / 0</span>
+                        </div>
+                        <button class="bulk-btn print" id="bulk-print">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" />
+                            </svg>
+                            Print Selected
+                        </button>
+                        <button class="bulk-btn delete" id="bulk-delete">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                <div id="history-list" class="history-list">
+                    <div style="text-align: center; color: var(--text-muted); margin-top: 100px;">
+                        <p>No files uploaded yet</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
