@@ -100,10 +100,35 @@ document.addEventListener('DOMContentLoaded', () => {
         stagedCountText.innerText = `${stagedFiles.length} PDF(s) to Upload`;
 
         if (stagedList) {
-            stagedList.innerHTML = stagedFiles.slice(0, 10).map(f => `<div>• ${f.name}</div>`).join('');
-            if (stagedFiles.length > 10) stagedList.innerHTML += `<div>...and ${stagedFiles.length - 10} more.</div>`;
+            stagedList.innerHTML = '';
+            stagedFiles.forEach((file, index) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.03);';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.innerText = `• ${file.name}`;
+                nameSpan.style.cssText = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;';
+
+                const delBtn = document.createElement('button');
+                delBtn.innerText = '✕';
+                delBtn.title = 'Remove file';
+                delBtn.style.cssText = 'background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 4px;';
+                delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
+                delBtn.onmouseout = () => delBtn.style.background = 'none';
+                delBtn.onclick = () => removeStagedFile(index);
+
+                row.appendChild(nameSpan);
+                row.appendChild(delBtn);
+                stagedList.appendChild(row);
+            });
         }
     }
+
+    window.removeStagedFile = (index) => {
+        stagedFiles.splice(index, 1);
+        renderStagedFiles();
+        if (fileInput) fileInput.value = ''; // Reset input to allow re-selecting same file
+    };
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', async () => {
@@ -246,8 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="file-name" style="font-size: 14px;">${file.originalname}</div>
                             ${skuBadge}
                         </div>
-                        <div class="file-meta" style="font-size: 11px;">
-                            ${bTag} ${(file.size / 1024).toFixed(1)} KB
+                            ${bTag} ${(file.size / 1024).toFixed(1)} KB ${file.timestamp ? '• ' + file.timestamp : ''}
                         </div>
                     </div>
                 </div>
