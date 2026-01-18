@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         historyList.innerHTML = '';
-        filteredFiles.slice().reverse().forEach(file => {
+        filteredFiles.forEach(file => {
             const row = document.createElement('div');
             row.className = 'history-item';
             row.dataset.filename = file.filename;
