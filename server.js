@@ -132,20 +132,30 @@ app.post('/print', async (req, res) => {
     const filePath = path.join(__dirname, 'uploads', filename);
 
     try {
-        // User requesting dynamic print settings.
-        // Default to 'noscale' as it is often safest for 4x6 labels, but allow 'fit' or 'shrink'.
-        const mode = req.body.mode || 'noscale';
-        console.log(`--- PRINTING WITH '${mode.toUpperCase()}' SETTING ---`);
+        // Read text to detect file type (e.g. Amazon Invoice)
+        const dataBuffer = fs.readFileSync(filePath);
+        const data = await pdf(dataBuffer);
+        const text = data.text || '';
 
-        const printSettings = mode === 'noscale' ? [] : [`-print-settings "${mode}"`];
+        let printSettings = ['-print-settings "paper=98x148mm,shrink"'];
+
+        // Amazon Invoice Detection
+        if (text.includes('amazon.in') || text.includes('Tax Invoice')) {
+            console.log("--- DETECTED AMAZON/INVOICE: Using 'fit' and full 100x150mm ---");
+            printSettings = ['-print-settings "paper=100x150mm,fit"'];
+        } else {
+            console.log("--- DETECTED STANDARD LABEL: Using 'shrink' and safety 98x148mm ---");
+        }
 
         const options = {
             printer: "TSC TTP-244 Pro",
             win32: printSettings
         };
+
         await ptp.print(filePath, options);
-        res.json({ success: true, mode: mode });
+        res.json({ success: true });
     } catch (error) {
+        console.error('Print error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
