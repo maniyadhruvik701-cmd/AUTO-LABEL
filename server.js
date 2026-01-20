@@ -141,8 +141,9 @@ app.post('/print', async (req, res) => {
 
         // Amazon Invoice Detection
         if (text.includes('amazon.in') || text.includes('Tax Invoice')) {
-            console.log("--- DETECTED AMAZON/INVOICE: Using 'fit' and full 100x150mm ---");
-            printSettings = ['-print-settings "paper=100x150mm,fit"'];
+            console.log("--- DETECTED AMAZON/INVOICE: Using 'shrink' + 'portrait' and full 100x150mm ---");
+            // Force portrait to prevent auto-rotation of A4, and use shrink to scale down
+            printSettings = ['-print-settings "paper=100x150mm,shrink,portrait"'];
         } else {
             console.log("--- DETECTED STANDARD LABEL: Using 'shrink' and safety 98x148mm ---");
         }
