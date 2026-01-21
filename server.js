@@ -132,33 +132,36 @@ app.post('/print', async (req, res) => {
     const filePath = path.join(__dirname, 'uploads', filename);
 
     try {
-        // Read text to detect file type (e.g. Amazon Invoice)
-        const dataBuffer = fs.readFileSync(filePath);
-        const data = await pdf(dataBuffer);
-        const text = data.text || '';
+        const buffer = fs.readFileSync(filePath);
+        const data = await pdf(buffer);
+        const text = data.text.toLowerCase();
 
-        let printSettings = ['-print-settings "paper=98x148mm,shrink"'];
+        const isAmazonInvoice =
+            text.includes('amazon.in') &&
+            text.includes('tax invoice');
 
-        // Amazon Invoice Detection
-        if (text.includes('amazon.in') || text.includes('Tax Invoice')) {
-            console.log("--- DETECTED AMAZON/INVOICE: Using 'shrink' + 'portrait' and full 100x150mm ---");
-            // Force portrait to prevent auto-rotation of A4, and use shrink to scale down
-            printSettings = ['-print-settings "paper=100x150mm,shrink,portrait"'];
-        } else {
-            console.log("--- DETECTED STANDARD LABEL: Using 'shrink' and safety 98x148mm ---");
-        }
-
-        const options = {
+        let options = {
             printer: "TSC TTP-244 Pro",
-            win32: printSettings
+            win32: ['-print-settings "paper=98x148mm,shrink"']
         };
+
+        if (isAmazonInvoice) {
+            console.log("Amazon invoice detected → printing FIRST PAGE ONLY");
+
+            options.win32 = [
+                '-print-settings "paper=98x148mm,shrink"',
+                '-print-pages 1'
+            ];
+        }
 
         await ptp.print(filePath, options);
         res.json({ success: true });
+
     } catch (error) {
-        console.error('Print error:', error);
+        console.error(error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 app.listen(port, () => console.log(`Server at http://localhost:${port}`));
+
