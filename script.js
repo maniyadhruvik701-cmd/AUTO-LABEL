@@ -38,11 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.getElementById('progress-text');
 
     // Dynamic Server URL
-    // If opened as a file (local testing), use localhost.
-    // If hosted (Ngrok), use the current dynamic URL (window.location.origin).
+    // If opened as a file, use localhost. If hosted (GitHub Pages/Ngrok), use the specific Ngrok URL.
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
-        : window.location.origin;
+        : 'https://nonencyclopedical-unsomberly-casimira.ngrok-free.dev';
     let uploadedFiles = [];
     let stagedFiles = [];
     let isLoading = true;
@@ -55,24 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load history from SERVER (Shared across all laptops)
     async function fetchHistory() {
-        const statusEl = document.getElementById('user-display-name');
         try {
             const response = await fetch(`${serverUrl}/history`, { headers });
             uploadedFiles = await response.json();
             isLoading = false;
-            if (statusEl) {
-                statusEl.innerText = 'Server Connected';
-                statusEl.style.color = '#10b981'; // Green
-            }
             renderBatchFilters();
             renderHistory();
         } catch (e) {
             console.error('Failed to fetch shared history');
             isLoading = false;
-            if (statusEl) {
-                statusEl.innerText = 'Server Disconnected';
-                statusEl.style.color = '#ef4444'; // Red
-            }
             renderHistory();
         }
     }
@@ -110,35 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stagedCountText.innerText = `${stagedFiles.length} PDF(s) to Upload`;
 
         if (stagedList) {
-            stagedList.innerHTML = '';
-            stagedFiles.forEach((file, index) => {
-                const row = document.createElement('div');
-                row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.03);';
-
-                const nameSpan = document.createElement('span');
-                nameSpan.innerText = `• ${file.name}`;
-                nameSpan.style.cssText = 'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;';
-
-                const delBtn = document.createElement('button');
-                delBtn.innerText = '✕';
-                delBtn.title = 'Remove file';
-                delBtn.style.cssText = 'background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 4px;';
-                delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.1)';
-                delBtn.onmouseout = () => delBtn.style.background = 'none';
-                delBtn.onclick = () => removeStagedFile(index);
-
-                row.appendChild(nameSpan);
-                row.appendChild(delBtn);
-                stagedList.appendChild(row);
-            });
+            stagedList.innerHTML = stagedFiles.slice(0, 10).map(f => `<div>• ${f.name}</div>`).join('');
+            if (stagedFiles.length > 10) stagedList.innerHTML += `<div>...and ${stagedFiles.length - 10} more.</div>`;
         }
     }
-
-    window.removeStagedFile = (index) => {
-        stagedFiles.splice(index, 1);
-        renderStagedFiles();
-        if (fileInput) fileInput.value = ''; // Reset input to allow re-selecting same file
-    };
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', async () => {
@@ -176,13 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData,
                 headers: headers
             });
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Server responded: ${response.status} ${errorText}`);
-            }
+            if (!response.ok) throw new Error('Upload failed');
         } catch (error) {
             console.error('Upload failed', error);
-            alert(`Error: ${error.message}\nCheck the Server Black Window for details.`);
+            alert(`Upload failed for ${file.name}. Is the server running?`);
         }
     }
 
@@ -267,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         historyList.innerHTML = '';
-        filteredFiles.forEach(file => {
+        filteredFiles.slice().reverse().forEach(file => {
             const row = document.createElement('div');
             row.className = 'history-item';
             row.dataset.filename = file.filename;
@@ -284,7 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="file-name" style="font-size: 14px;">${file.originalname}</div>
                             ${skuBadge}
                         </div>
-                            ${bTag} ${(file.size / 1024).toFixed(1)} KB ${file.timestamp ? '• ' + file.timestamp : ''}
+                        <div class="file-meta" style="font-size: 11px;">
+                            ${bTag} ${(file.size / 1024).toFixed(1)} KB
                         </div>
                     </div>
                 </div>
