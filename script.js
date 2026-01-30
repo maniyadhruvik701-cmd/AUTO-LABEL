@@ -41,7 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // If opened as a file, use localhost. If hosted (GitHub Pages/Ngrok), use the specific Ngrok URL.
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
-        : 'https://nonencyclopedical-unsomberly-casimira.ngrok-free.dev';
+        : (window.location.hostname.includes('github.io')
+            ? 'https://nonencyclopedical-unsomberly-casimira.ngrok-free.dev'
+            : window.location.origin);
     let uploadedFiles = [];
     let stagedFiles = [];
     let isLoading = true;
