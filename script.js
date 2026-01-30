@@ -99,13 +99,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         stagedFilesContainer.style.display = 'block';
-        stagedCountText.innerText = `${stagedFiles.length} PDF(s) to Upload`;
+        stagedCountText.innerHTML = `${stagedFiles.length} PDF(s) <span style="cursor:pointer; color:#ef4444; margin-left:10px; font-size:12px;" onclick="clearStagedFiles()">(Clear All)</span>`;
 
         if (stagedList) {
-            stagedList.innerHTML = stagedFiles.slice(0, 10).map(f => `<div>• ${f.name}</div>`).join('');
-            if (stagedFiles.length > 10) stagedList.innerHTML += `<div>...and ${stagedFiles.length - 10} more.</div>`;
+            stagedList.innerHTML = stagedFiles.map((f, i) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding:4px 0;">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90%;">• ${f.name}</span>
+                    <span onclick="removeStagedFile(${i})" style="color:#ef4444; cursor:pointer; font-weight:bold; padding:0 5px;" title="Remove">✕</span>
+                </div>
+            `).join('');
         }
     }
+
+    window.removeStagedFile = (index) => {
+        stagedFiles.splice(index, 1);
+        renderStagedFiles();
+    };
+
+    window.clearStagedFiles = () => {
+        stagedFiles = [];
+        renderStagedFiles();
+    };
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', async () => {
