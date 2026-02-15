@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
         : (window.location.hostname.includes('github.io')
-            ? 'https://enjoyingly-uninsulted-delores.ngrok-free.dev'
+            ? 'https://nonencyclopedical-unsomberly-casimira.ngrok-free.dev'
             : window.location.origin);
     let uploadedFiles = [];
     let stagedFiles = [];
