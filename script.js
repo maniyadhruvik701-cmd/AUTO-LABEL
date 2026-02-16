@@ -13,6 +13,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadBtn = document.getElementById('upload-btn');
     const selectedCounter = document.getElementById('selected-counter');
 
+    // Navigation Logic
+    const navDashboard = document.getElementById('nav-dashboard');
+    const navAmazon = document.getElementById('nav-amazon');
+    const viewDashboard = document.getElementById('view-dashboard');
+    const viewAmazon = document.getElementById('view-amazon');
+
+    if (navDashboard && navAmazon) {
+        navDashboard.addEventListener('click', () => {
+            navDashboard.classList.add('active');
+            navAmazon.classList.remove('active');
+            viewDashboard.style.display = 'grid'; // Revert to grid
+            viewAmazon.style.display = 'none';
+        });
+
+        navAmazon.addEventListener('click', () => {
+            navAmazon.classList.add('active');
+            navDashboard.classList.remove('active');
+            viewDashboard.style.display = 'none';
+            viewAmazon.style.display = 'flex'; // Flex for centering content
+        });
+    }
+
     // Add a place for the staged list again since the user might be confused if nothing shows
     let stagedList = document.getElementById('staged-list');
     if (!stagedList && stagedFilesContainer) {
