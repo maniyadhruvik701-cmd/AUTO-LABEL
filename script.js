@@ -12,6 +12,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchNameInput = document.getElementById('batch-name-input');
     const uploadBtn = document.getElementById('upload-btn');
     const selectedCounter = document.getElementById('selected-counter');
+    const showDeletedBtn = document.getElementById('show-deleted-btn');
+    let viewingDeleted = false;
+
+    if (showDeletedBtn) {
+        showDeletedBtn.addEventListener('click', () => {
+            viewingDeleted = !viewingDeleted;
+            showDeletedBtn.innerText = viewingDeleted ? 'View Active' : 'View Deleted';
+            showDeletedBtn.style.background = viewingDeleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+            showDeletedBtn.style.borderColor = viewingDeleted ? '#10b981' : '#ef4444';
+            showDeletedBtn.style.color = viewingDeleted ? '#10b981' : '#ef4444';
+            currentCategory = 'All'; // reset category
+            if (typeof selectAllCheckbox !== 'undefined' && selectAllCheckbox) {
+                selectAllCheckbox.style.display = viewingDeleted ? 'none' : 'block';
+                selectAllCheckbox.checked = false;
+            }
+            fetchHistory();
+        });
+    }
 
     // Navigation Logic
     const navDashboard = document.getElementById('nav-dashboard');
@@ -79,15 +97,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load history from SERVER (Shared across all laptops)
     async function fetchHistory() {
         try {
-            const response = await fetch(`${serverUrl}/history`, { headers });
+            const endpoint = viewingDeleted ? `${serverUrl}/deleted-history` : `${serverUrl}/history`;
+            const response = await fetch(endpoint, { headers });
             uploadedFiles = await response.json();
             isLoading = false;
-            renderBatchFilters();
-            renderHistory();
+            if (viewingDeleted) {
+                if (batchFilterContainer) batchFilterContainer.style.display = 'none';
+                renderDeletedHistory();
+            } else {
+                if (batchFilterContainer) batchFilterContainer.style.display = 'flex';
+                renderBatchFilters();
+                renderHistory();
+            }
         } catch (e) {
             console.error('Failed to fetch shared history');
             isLoading = false;
-            renderHistory();
+            if (viewingDeleted) renderDeletedHistory();
+            else renderHistory();
         }
     }
 
@@ -245,6 +271,51 @@ document.addEventListener('DOMContentLoaded', () => {
             actionsDiv.appendChild(deleteBatchBtn);
             batchFilterContainer.appendChild(actionsDiv);
         }
+    }
+
+    function renderDeletedHistory() {
+        if (!historyList) return;
+
+        if (isLoading) {
+            historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 100px;"><p>Syncing deleted history from server...</p></div>';
+            return;
+        }
+
+        if (uploadedFiles.length === 0) {
+            historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 100px;"><p>No deleted files.</p></div>';
+            if (bulkActions) bulkActions.style.display = 'none';
+            if (selectedCounter) selectedCounter.innerText = '';
+            return;
+        }
+
+        historyList.innerHTML = '';
+        uploadedFiles.slice().reverse().forEach(file => {
+            const row = document.createElement('div');
+            row.className = 'history-item';
+            
+            const skuBadge = file.sku ? `<span class="sku-badge">${file.sku}</span>` : '';
+            const bTag = `<span style="font-size: 10px; color: var(--primary); background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">${file.batchName || 'Default'}</span>`;
+            const deletedTag = `<span style="font-size: 10px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">Deleted: ${file.deletedAt || 'N/A'}</span>`;
+
+            row.innerHTML = `
+                <div class="file-info" style="opacity: 0.6;">
+                    <div class="file-icon" style="width: 34px; height: 34px; font-size: 8px; filter: grayscale(1);">PDF</div>
+                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="file-name" style="font-size: 14px; text-decoration: line-through;">${file.originalname}</div>
+                            ${skuBadge}
+                        </div>
+                        <div class="file-meta" style="font-size: 11px; margin-top: 4px;">
+                            ${bTag} ${deletedTag} ${(file.size / 1024).toFixed(1)} KB
+                        </div>
+                    </div>
+                </div>
+            `;
+            historyList.appendChild(row);
+        });
+
+        if (bulkActions) bulkActions.style.display = 'none';
+        if (selectedCounter) selectedCounter.innerText = '';
     }
 
     function renderHistory() {
