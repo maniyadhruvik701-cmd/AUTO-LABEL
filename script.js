@@ -310,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </div>
+                <button class="print-btn" style="padding: 6px 14px; font-size: 12px; background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981;" onclick="restoreFile('${file.filename}', this)">Restore</button>
             `;
             historyList.appendChild(row);
         });
@@ -498,5 +499,17 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerHTML = 'Done';
             setTimeout(() => { btn.innerHTML = 'Print'; btn.disabled = false; }, 1500);
         } catch (e) { alert('Print failed'); btn.disabled = false; btn.innerHTML = 'Print'; }
+    };
+
+    window.restoreFile = async (filename, btn) => {
+        btn.disabled = true; btn.innerHTML = 'Restoring...';
+        try {
+            await fetch(`${serverUrl}/restore-history`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify({ filenames: [filename] })
+            });
+            await fetchHistory();
+        } catch (e) { alert('Restore failed'); btn.disabled = false; btn.innerHTML = 'Restore'; }
     };
 });
