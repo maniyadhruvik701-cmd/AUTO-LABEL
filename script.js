@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadedFiles.slice().reverse().forEach(file => {
             const row = document.createElement('div');
             row.className = 'history-item';
-            
+
             const skuBadge = file.sku ? `<span class="sku-badge">${file.sku}</span>` : '';
             const bTag = `<span style="font-size: 10px; color: var(--primary); background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">${file.batchName || 'Default'}</span>`;
             const deletedTag = `<span style="font-size: 10px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">Deleted: ${file.deletedAt || 'N/A'}</span>`;
