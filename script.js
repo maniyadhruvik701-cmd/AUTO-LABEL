@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const endpoint = viewingDeleted ? `${serverUrl}/deleted-history` : `${serverUrl}/history`;
             const response = await fetch(endpoint, { headers });
             uploadedFiles = await response.json();
+            console.log(`[fetchHistory] endpoint=${endpoint} count=${uploadedFiles.length}`);
             isLoading = false;
             if (viewingDeleted) {
                 if (batchFilterContainer) batchFilterContainer.style.display = 'none';
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderHistory();
             }
         } catch (e) {
-            console.error('Failed to fetch shared history');
+            console.error('Failed to fetch shared history', e);
             isLoading = false;
             if (viewingDeleted) renderDeletedHistory();
             else renderHistory();
@@ -256,14 +257,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (confirm(`Are you sure you want to delete the entire group "${currentCategory}"? (${filesToDelete.length} files will be deleted)`)) {
                     const filenames = filesToDelete.map(f => f.filename);
                     try {
-                        await fetch(`${serverUrl}/delete-history`, {
+                        const r = await fetch(`${serverUrl}/delete-history`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...headers },
                             body: JSON.stringify({ filenames })
                         });
+                        if (!r.ok) throw new Error('Server error: ' + r.status);
                         currentCategory = 'All'; // Back to All after delete
                         await fetchHistory();
-                    } catch (e) { console.error('Delete batch failed'); }
+                    } catch (e) { console.error('Delete batch failed', e); alert('Delete failed! Is the server running?\n' + e.message); }
                 }
             };
 
@@ -445,13 +447,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirm(`Are you sure you want to delete ${filenames.length} selected files?`)) return;
 
             try {
-                await fetch(`${serverUrl}/delete-history`, {
+                const r = await fetch(`${serverUrl}/delete-history`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...headers },
                     body: JSON.stringify({ filenames })
                 });
+                if (!r.ok) throw new Error('Server error: ' + r.status);
                 await fetchHistory();
-            } catch (e) { console.error('Delete failed'); }
+            } catch (e) { console.error('Delete failed', e); alert('Delete failed! Is the server running?\n' + e.message); }
         });
     }
 
