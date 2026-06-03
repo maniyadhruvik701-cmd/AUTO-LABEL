@@ -23,11 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
             showDeletedBtn.style.borderColor = viewingDeleted ? '#10b981' : '#ef4444';
             showDeletedBtn.style.color = viewingDeleted ? '#10b981' : '#ef4444';
             currentCategory = 'All'; // reset category
-            currentDateFilter = 'All Time'; // reset date filter
             if (typeof selectAllCheckbox !== 'undefined' && selectAllCheckbox) {
                 selectAllCheckbox.style.display = viewingDeleted ? 'none' : 'block';
                 selectAllCheckbox.checked = false;
             }
+            // Hide/show date bar when toggling view
+            const dateBar = document.getElementById('deleted-date-bar');
+            if (dateBar) dateBar.style.display = viewingDeleted ? 'flex' : 'none';
             fetchHistory();
         });
     }
@@ -63,23 +65,15 @@ document.addEventListener('DOMContentLoaded', () => {
         stagedFilesContainer.querySelector('div').after(stagedList);
     }
 
-    // For Date Filtering
-    const historyHeader = document.querySelector('.history-header');
-    let dateFilterContainer = document.getElementById('date-filter-container');
-    if (!dateFilterContainer) {
-        dateFilterContainer = document.createElement('div');
-        dateFilterContainer.id = 'date-filter-container';
-        dateFilterContainer.style.cssText = 'margin-bottom: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--glass-border);';
-        historyHeader.after(dateFilterContainer);
-    }
-
     // For Batch Filtering
+    const historyHeader = document.querySelector('.history-header');
     let batchFilterContainer = document.getElementById('batch-filter-container');
+
     if (!batchFilterContainer) {
         batchFilterContainer = document.createElement('div');
         batchFilterContainer.id = 'batch-filter-container';
         batchFilterContainer.style.cssText = 'margin-bottom: 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--glass-border);';
-        dateFilterContainer.after(batchFilterContainer);
+        historyHeader.after(batchFilterContainer);
     }
 
     const progressContainer = document.getElementById('print-progress');
@@ -97,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let stagedFiles = [];
     let isLoading = true;
     let currentCategory = 'All';
-    let currentDateFilter = 'All Time';
 
     // Headers (Skip ngrok warning)
     const headers = {
@@ -112,13 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedFiles = await response.json();
             isLoading = false;
             if (viewingDeleted) {
-                if (dateFilterContainer) dateFilterContainer.style.display = 'none';
                 if (batchFilterContainer) batchFilterContainer.style.display = 'none';
                 renderDeletedHistory();
             } else {
-                if (dateFilterContainer) dateFilterContainer.style.display = 'flex';
                 if (batchFilterContainer) batchFilterContainer.style.display = 'flex';
-                renderDateFilters();
                 renderBatchFilters();
                 renderHistory();
             }
@@ -225,61 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Date Filter Helpers ---
-    function parseDateFromTimestamp(ts) {
-        if (!ts) return null;
-        // Format: "16/2/2026, 4:22:19 pm"
-        try {
-            const [datePart] = ts.split(',');
-            const [d, m, y] = datePart.trim().split('/');
-            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-        } catch (e) { return null; }
-    }
-
-    function getDateFilteredFiles(files) {
-        if (currentDateFilter === 'All Time') return files;
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        return files.filter(f => {
-            const d = parseDateFromTimestamp(f.timestamp);
-            if (!d) return false;
-            if (currentDateFilter === 'Today') {
-                return d >= today;
-            } else if (currentDateFilter === 'Yesterday') {
-                const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-                return d >= yesterday && d < today;
-            } else if (currentDateFilter === 'This Week') {
-                const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
-                return d >= weekStart;
-            } else if (currentDateFilter === 'This Month') {
-                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                return d >= monthStart;
-            }
-            return true;
-        });
-    }
-
-    function renderDateFilters() {
-        if (!dateFilterContainer) return;
-        const dateOptions = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month'];
-        dateFilterContainer.innerHTML = '<span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-right: 4px; white-space: nowrap;">📅 Date:</span>';
-        dateOptions.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'print-btn';
-            const isActive = currentDateFilter === opt;
-            btn.style.cssText = `padding: 4px 12px; font-size: 11px; border-radius: 20px; transition: all 0.3s;
-                ${isActive ? 'background: rgba(99,102,241,0.35); border-color: var(--primary); color: #fff; transform: scale(1.05);' : 'background: rgba(255,255,255,0.04); border-color: var(--glass-border); opacity: 0.7;'}`;
-            btn.innerText = opt;
-            btn.onclick = () => {
-                currentDateFilter = opt;
-                renderDateFilters();
-                renderBatchFilters();
-                renderHistory();
-            };
-            dateFilterContainer.appendChild(btn);
-        });
-    }
-
     function renderBatchFilters() {
         if (!batchFilterContainer) return;
 
@@ -341,6 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let deletedDateFilter = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format (today default)
+
     function renderDeletedHistory() {
         if (!historyList) return;
 
@@ -349,15 +286,66 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // --- Date Filter Bar ---
+        let dateBar = document.getElementById('deleted-date-bar');
+        if (!dateBar) {
+            dateBar = document.createElement('div');
+            dateBar.id = 'deleted-date-bar';
+            dateBar.style.cssText = 'margin-bottom: 16px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25); border-radius: 12px;';
+            dateBar.innerHTML = `
+                <span style="font-size: 13px; font-weight: 600; color: #ef4444;">📅 Filter by Date:</span>
+                <input type="date" id="deleted-date-input" value="${deletedDateFilter}"
+                    style="background: rgba(0,0,0,0.3); border: 1px solid rgba(239,68,68,0.4); color: #f8fafc; border-radius: 8px; padding: 5px 10px; font-size: 13px; cursor: pointer; outline: none;">
+                <button id="deleted-date-clear" style="padding: 5px 12px; font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-muted); border-radius: 8px; cursor: pointer;">Show All</button>
+                <span id="deleted-date-count" style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+            `;
+            historyList.before(dateBar);
+
+            document.getElementById('deleted-date-input').addEventListener('change', (e) => {
+                deletedDateFilter = e.target.value;
+                renderDeletedHistory();
+            });
+            document.getElementById('deleted-date-clear').addEventListener('click', () => {
+                deletedDateFilter = '';
+                document.getElementById('deleted-date-input').value = '';
+                renderDeletedHistory();
+            });
+        } else {
+            // Update input value if filter changed
+            const inp = document.getElementById('deleted-date-input');
+            if (inp) inp.value = deletedDateFilter;
+        }
+
+        // --- Filter files by selected date ---
+        const filtered = deletedDateFilter
+            ? uploadedFiles.filter(f => {
+                if (!f.deletedAt) return false;
+                // deletedAt is like "6/3/2026, 10:45:00 AM" — parse the date part
+                const d = new Date(f.deletedAt);
+                const dateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+                return dateStr === deletedDateFilter;
+            })
+            : uploadedFiles;
+
+        const countEl = document.getElementById('deleted-date-count');
+        if (countEl) countEl.innerText = `${filtered.length} file(s)`;
+
         if (uploadedFiles.length === 0) {
-            historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 100px;"><p>No deleted files.</p></div>';
+            historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 60px;"><p>No deleted files.</p></div>';
+            if (bulkActions) bulkActions.style.display = 'none';
+            if (selectedCounter) selectedCounter.innerText = '';
+            return;
+        }
+
+        if (filtered.length === 0) {
+            historyList.innerHTML = `<div style="text-align: center; color: var(--text-muted); margin-top: 60px;"><p>No deleted files on <strong style="color:#ef4444;">${deletedDateFilter || 'selected date'}</strong>.</p></div>`;
             if (bulkActions) bulkActions.style.display = 'none';
             if (selectedCounter) selectedCounter.innerText = '';
             return;
         }
 
         historyList.innerHTML = '';
-        uploadedFiles.slice().reverse().forEach(file => {
+        filtered.slice().reverse().forEach(file => {
             const row = document.createElement('div');
             row.className = 'history-item';
 
@@ -398,10 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const dateFiltered = getDateFilteredFiles(uploadedFiles);
         const filteredFiles = currentCategory === 'All'
-            ? dateFiltered
-            : dateFiltered.filter(f => (f.batchName || 'Default Batch') === currentCategory);
+            ? uploadedFiles
+            : uploadedFiles.filter(f => (f.batchName || 'Default Batch') === currentCategory);
 
         if (filteredFiles.length === 0) {
             historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 100px;"><p>No files in this category.</p></div>';
