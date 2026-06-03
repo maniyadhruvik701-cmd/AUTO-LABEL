@@ -308,10 +308,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtered = deletedDateFilter
             ? uploadedFiles.filter(f => {
                 if (!f.deletedAt) return false;
-                // deletedAt is like "6/3/2026, 10:45:00 AM" — parse the date part
+                // deletedAt is ISO string: "2026-06-03T05:57:00.000Z"
+                // Convert to IST (UTC+5:30) before extracting date
                 const d = new Date(f.deletedAt);
-                const dateStr = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
-                return dateStr === deletedDateFilter;
+                const istOffset = 5.5 * 60 * 60 * 1000;
+                const istDate = new Date(d.getTime() + istOffset);
+                const fileDate = istDate.toISOString().slice(0, 10); // "2026-06-03"
+                return fileDate === deletedDateFilter;
             })
             : uploadedFiles;
 
@@ -339,7 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const skuBadge = file.sku ? `<span class="sku-badge">${file.sku}</span>` : '';
             const bTag = `<span style="font-size: 10px; color: var(--primary); background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">${file.batchName || 'Default'}</span>`;
-            const deletedTag = `<span style="font-size: 10px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">Deleted: ${file.deletedAt || 'N/A'}</span>`;
+            const displayDate = file.deletedAt ? new Date(file.deletedAt).toLocaleString() : 'N/A';
+            const deletedTag = `<span style="font-size: 10px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px;">Deleted: ${displayDate}</span>`;
 
             row.innerHTML = `
                 <div class="file-info" style="opacity: 0.6;">
