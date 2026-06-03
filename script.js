@@ -99,9 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const endpoint = viewingDeleted ? `${serverUrl}/deleted-history` : `${serverUrl}/history`;
             const response = await fetch(endpoint, { headers });
+            if (!response.ok) throw new Error(`Server returned ${response.status}`);
             uploadedFiles = await response.json();
             console.log(`[fetchHistory] endpoint=${endpoint} count=${uploadedFiles.length}`);
             isLoading = false;
+            setServerStatus(true);
             if (viewingDeleted) {
                 if (batchFilterContainer) batchFilterContainer.style.display = 'none';
                 renderDeletedHistory();
@@ -113,10 +115,32 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error('Failed to fetch shared history', e);
             isLoading = false;
-            if (viewingDeleted) renderDeletedHistory();
-            else renderHistory();
+            setServerStatus(false);
+            if (historyList) {
+                historyList.innerHTML = `<div style="text-align:center; color:#ef4444; margin-top:80px; padding:20px;">
+                    <div style="font-size:36px; margin-bottom:12px;">⚠️</div>
+                    <p style="font-weight:600; font-size:16px; margin-bottom:8px;">Server Offline</p>
+                    <p style="font-size:13px; color:var(--text-muted);">START_APP.bat ચલાવો અને restart કરો.</p>
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">${e.message}</p>
+                </div>`;
+            }
         }
     }
+
+    function setServerStatus(online) {
+        let dot = document.getElementById('server-status-dot');
+        if (!dot) {
+            dot = document.createElement('span');
+            dot.id = 'server-status-dot';
+            dot.style.cssText = 'display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:3px 10px; border-radius:20px; margin-left:8px;';
+            const nameEl = document.getElementById('user-display-name');
+            if (nameEl && nameEl.parentNode) nameEl.parentNode.appendChild(dot);
+        }
+        dot.innerHTML = online
+            ? `<span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;box-shadow:0 0 6px #10b981;"></span><span style="color:#10b981;">Online</span>`
+            : `<span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 6px #ef4444;"></span><span style="color:#ef4444;">Server Offline</span>`;
+    }
+
 
     // Refresh history every 7 seconds
     setInterval(fetchHistory, 7000);
