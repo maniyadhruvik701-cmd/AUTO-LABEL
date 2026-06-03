@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
         : (window.location.hostname.includes('github.io')
-            ? 'https://odontological-malika-unreasonably.ngrok-free.dev'
+            ? 'https://direction-hamstring-grandpa.ngrok-free.dev'
             : window.location.origin);
     let uploadedFiles = [];
     let stagedFiles = [];
