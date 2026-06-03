@@ -99,11 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const endpoint = viewingDeleted ? `${serverUrl}/deleted-history` : `${serverUrl}/history`;
             const response = await fetch(endpoint, { headers });
-            if (!response.ok) throw new Error(`Server returned ${response.status}`);
             uploadedFiles = await response.json();
-            console.log(`[fetchHistory] endpoint=${endpoint} count=${uploadedFiles.length}`);
             isLoading = false;
-            setServerStatus(true);
             if (viewingDeleted) {
                 if (batchFilterContainer) batchFilterContainer.style.display = 'none';
                 renderDeletedHistory();
@@ -113,34 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderHistory();
             }
         } catch (e) {
-            console.error('Failed to fetch shared history', e);
+            console.error('Failed to fetch shared history');
             isLoading = false;
-            setServerStatus(false);
-            if (historyList) {
-                historyList.innerHTML = `<div style="text-align:center; color:#ef4444; margin-top:80px; padding:20px;">
-                    <div style="font-size:36px; margin-bottom:12px;">⚠️</div>
-                    <p style="font-weight:600; font-size:16px; margin-bottom:8px;">Server Offline</p>
-                    <p style="font-size:13px; color:var(--text-muted);">START_APP.bat ચલાવો અને restart કરો.</p>
-                    <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">${e.message}</p>
-                </div>`;
-            }
+            if (viewingDeleted) renderDeletedHistory();
+            else renderHistory();
         }
     }
-
-    function setServerStatus(online) {
-        let dot = document.getElementById('server-status-dot');
-        if (!dot) {
-            dot = document.createElement('span');
-            dot.id = 'server-status-dot';
-            dot.style.cssText = 'display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:3px 10px; border-radius:20px; margin-left:8px;';
-            const nameEl = document.getElementById('user-display-name');
-            if (nameEl && nameEl.parentNode) nameEl.parentNode.appendChild(dot);
-        }
-        dot.innerHTML = online
-            ? `<span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;box-shadow:0 0 6px #10b981;"></span><span style="color:#10b981;">Online</span>`
-            : `<span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 6px #ef4444;"></span><span style="color:#ef4444;">Server Offline</span>`;
-    }
-
 
     // Refresh history every 7 seconds
     setInterval(fetchHistory, 7000);
@@ -281,15 +256,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (confirm(`Are you sure you want to delete the entire group "${currentCategory}"? (${filesToDelete.length} files will be deleted)`)) {
                     const filenames = filesToDelete.map(f => f.filename);
                     try {
-                        const r = await fetch(`${serverUrl}/delete-history`, {
+                        await fetch(`${serverUrl}/delete-history`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...headers },
                             body: JSON.stringify({ filenames })
                         });
-                        if (!r.ok) throw new Error('Server error: ' + r.status);
                         currentCategory = 'All'; // Back to All after delete
                         await fetchHistory();
-                    } catch (e) { console.error('Delete batch failed', e); alert('Delete failed! Is the server running?\n' + e.message); }
+                    } catch (e) { console.error('Delete batch failed'); }
                 }
             };
 
@@ -336,7 +310,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </div>
-                <button class="print-btn" style="padding: 6px 14px; font-size: 12px; background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981;" onclick="restoreFile('${file.filename}', this)">Restore</button>
+                <div style="display: flex; gap: 6px;">
+                    <button class="print-btn" style="padding: 6px 14px; font-size: 12px; background: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981;" onclick="restoreFile('${file.filename}', this)">Restore</button>
+                    <button class="print-btn" style="padding: 6px 14px; font-size: 12px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: #ef4444;" onclick="permanentDeleteFile('${file.filename}', this)">Delete Forever</button>
+                </div>
             `;
             historyList.appendChild(row);
         });
@@ -471,14 +448,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirm(`Are you sure you want to delete ${filenames.length} selected files?`)) return;
 
             try {
-                const r = await fetch(`${serverUrl}/delete-history`, {
+                await fetch(`${serverUrl}/delete-history`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...headers },
                     body: JSON.stringify({ filenames })
                 });
-                if (!r.ok) throw new Error('Server error: ' + r.status);
                 await fetchHistory();
-            } catch (e) { console.error('Delete failed', e); alert('Delete failed! Is the server running?\n' + e.message); }
+            } catch (e) { console.error('Delete failed'); }
         });
     }
 
@@ -538,5 +514,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             await fetchHistory();
         } catch (e) { alert('Restore failed'); btn.disabled = false; btn.innerHTML = 'Restore'; }
+    };
+
+    window.permanentDeleteFile = async (filename, btn) => {
+        if (!confirm('Permanently delete this file? This cannot be undone!')) return;
+        btn.disabled = true; btn.innerHTML = 'Deleting...';
+        try {
+            await fetch(`${serverUrl}/permanent-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify({ filenames: [filename] })
+            });
+            await fetchHistory();
+        } catch (e) { alert('Permanent delete failed'); btn.disabled = false; btn.innerHTML = 'Delete Forever'; }
     };
 });
