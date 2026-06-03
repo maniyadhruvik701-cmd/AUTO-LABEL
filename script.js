@@ -105,10 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedFiles = await response.json();
             isLoading = false;
             if (viewingDeleted) {
-                if (batchFilterContainer) batchFilterContainer.style.display = 'none';
+                renderDeletedDateFilter();
                 renderDeletedHistory();
             } else {
-                if (batchFilterContainer) batchFilterContainer.style.display = 'flex';
                 renderBatchFilters();
                 renderHistory();
             }
@@ -276,7 +275,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let deletedDateFilter = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format (today default)
+    let deletedDateFilter = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD (today default)
+
+    function renderDeletedDateFilter() {
+        if (!batchFilterContainer) return;
+        batchFilterContainer.style.display = 'flex';
+        batchFilterContainer.innerHTML = `
+            <span style="font-size: 13px; font-weight: 600; color: #ef4444;">📅 Date:</span>
+            <input type="date" id="deleted-date-input" value="${deletedDateFilter}"
+                style="background: rgba(0,0,0,0.3); border: 1px solid rgba(239,68,68,0.4); color: #f8fafc; border-radius: 8px; padding: 5px 10px; font-size: 13px; cursor: pointer; outline: none;">
+            <span id="deleted-date-count" style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
+        `;
+        document.getElementById('deleted-date-input').addEventListener('change', (e) => {
+            deletedDateFilter = e.target.value;
+            renderDeletedHistory();
+        });
+    }
 
     function renderDeletedHistory() {
         if (!historyList) return;
@@ -286,35 +300,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // --- Date Filter Bar ---
-        let dateBar = document.getElementById('deleted-date-bar');
-        if (!dateBar) {
-            dateBar = document.createElement('div');
-            dateBar.id = 'deleted-date-bar';
-            dateBar.style.cssText = 'margin-bottom: 16px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25); border-radius: 12px;';
-            dateBar.innerHTML = `
-                <span style="font-size: 13px; font-weight: 600; color: #ef4444;">📅 Filter by Date:</span>
-                <input type="date" id="deleted-date-input" value="${deletedDateFilter}"
-                    style="background: rgba(0,0,0,0.3); border: 1px solid rgba(239,68,68,0.4); color: #f8fafc; border-radius: 8px; padding: 5px 10px; font-size: 13px; cursor: pointer; outline: none;">
-                <button id="deleted-date-clear" style="padding: 5px 12px; font-size: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-muted); border-radius: 8px; cursor: pointer;">Show All</button>
-                <span id="deleted-date-count" style="margin-left: auto; font-size: 12px; color: var(--text-muted);"></span>
-            `;
-            historyList.before(dateBar);
-
-            document.getElementById('deleted-date-input').addEventListener('change', (e) => {
-                deletedDateFilter = e.target.value;
-                renderDeletedHistory();
-            });
-            document.getElementById('deleted-date-clear').addEventListener('click', () => {
-                deletedDateFilter = '';
-                document.getElementById('deleted-date-input').value = '';
-                renderDeletedHistory();
-            });
-        } else {
-            // Update input value if filter changed
-            const inp = document.getElementById('deleted-date-input');
-            if (inp) inp.value = deletedDateFilter;
-        }
+        // Update date input value
+        const inp = document.getElementById('deleted-date-input');
+        if (inp) inp.value = deletedDateFilter;
 
         // --- Filter files by selected date ---
         const filtered = deletedDateFilter
