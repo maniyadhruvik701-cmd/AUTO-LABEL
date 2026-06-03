@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showDeletedBtn.style.borderColor = viewingDeleted ? '#10b981' : '#ef4444';
             showDeletedBtn.style.color = viewingDeleted ? '#10b981' : '#ef4444';
             currentCategory = 'All'; // reset category
+            currentDateFilter = 'All Time'; // reset date filter
             if (typeof selectAllCheckbox !== 'undefined' && selectAllCheckbox) {
                 selectAllCheckbox.style.display = viewingDeleted ? 'none' : 'block';
                 selectAllCheckbox.checked = false;
@@ -62,15 +63,23 @@ document.addEventListener('DOMContentLoaded', () => {
         stagedFilesContainer.querySelector('div').after(stagedList);
     }
 
-    // For Batch Filtering
+    // For Date Filtering
     const historyHeader = document.querySelector('.history-header');
-    let batchFilterContainer = document.getElementById('batch-filter-container');
+    let dateFilterContainer = document.getElementById('date-filter-container');
+    if (!dateFilterContainer) {
+        dateFilterContainer = document.createElement('div');
+        dateFilterContainer.id = 'date-filter-container';
+        dateFilterContainer.style.cssText = 'margin-bottom: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--glass-border);';
+        historyHeader.after(dateFilterContainer);
+    }
 
+    // For Batch Filtering
+    let batchFilterContainer = document.getElementById('batch-filter-container');
     if (!batchFilterContainer) {
         batchFilterContainer = document.createElement('div');
         batchFilterContainer.id = 'batch-filter-container';
         batchFilterContainer.style.cssText = 'margin-bottom: 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--glass-border);';
-        historyHeader.after(batchFilterContainer);
+        dateFilterContainer.after(batchFilterContainer);
     }
 
     const progressContainer = document.getElementById('print-progress');
@@ -88,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let stagedFiles = [];
     let isLoading = true;
     let currentCategory = 'All';
+    let currentDateFilter = 'All Time';
 
     // Headers (Skip ngrok warning)
     const headers = {
@@ -102,10 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedFiles = await response.json();
             isLoading = false;
             if (viewingDeleted) {
+                if (dateFilterContainer) dateFilterContainer.style.display = 'none';
                 if (batchFilterContainer) batchFilterContainer.style.display = 'none';
                 renderDeletedHistory();
             } else {
+                if (dateFilterContainer) dateFilterContainer.style.display = 'flex';
                 if (batchFilterContainer) batchFilterContainer.style.display = 'flex';
+                renderDateFilters();
                 renderBatchFilters();
                 renderHistory();
             }
@@ -210,6 +223,61 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Upload failed', error);
             alert(`Upload failed for ${file.name}. Is the server running?`);
         }
+    }
+
+    // --- Date Filter Helpers ---
+    function parseDateFromTimestamp(ts) {
+        if (!ts) return null;
+        // Format: "16/2/2026, 4:22:19 pm"
+        try {
+            const [datePart] = ts.split(',');
+            const [d, m, y] = datePart.trim().split('/');
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        } catch (e) { return null; }
+    }
+
+    function getDateFilteredFiles(files) {
+        if (currentDateFilter === 'All Time') return files;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return files.filter(f => {
+            const d = parseDateFromTimestamp(f.timestamp);
+            if (!d) return false;
+            if (currentDateFilter === 'Today') {
+                return d >= today;
+            } else if (currentDateFilter === 'Yesterday') {
+                const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                return d >= yesterday && d < today;
+            } else if (currentDateFilter === 'This Week') {
+                const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
+                return d >= weekStart;
+            } else if (currentDateFilter === 'This Month') {
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                return d >= monthStart;
+            }
+            return true;
+        });
+    }
+
+    function renderDateFilters() {
+        if (!dateFilterContainer) return;
+        const dateOptions = ['All Time', 'Today', 'Yesterday', 'This Week', 'This Month'];
+        dateFilterContainer.innerHTML = '<span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-right: 4px; white-space: nowrap;">📅 Date:</span>';
+        dateOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'print-btn';
+            const isActive = currentDateFilter === opt;
+            btn.style.cssText = `padding: 4px 12px; font-size: 11px; border-radius: 20px; transition: all 0.3s;
+                ${isActive ? 'background: rgba(99,102,241,0.35); border-color: var(--primary); color: #fff; transform: scale(1.05);' : 'background: rgba(255,255,255,0.04); border-color: var(--glass-border); opacity: 0.7;'}`;
+            btn.innerText = opt;
+            btn.onclick = () => {
+                currentDateFilter = opt;
+                renderDateFilters();
+                renderBatchFilters();
+                renderHistory();
+            };
+            dateFilterContainer.appendChild(btn);
+        });
     }
 
     function renderBatchFilters() {
@@ -330,9 +398,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const dateFiltered = getDateFilteredFiles(uploadedFiles);
         const filteredFiles = currentCategory === 'All'
-            ? uploadedFiles
-            : uploadedFiles.filter(f => (f.batchName || 'Default Batch') === currentCategory);
+            ? dateFiltered
+            : dateFiltered.filter(f => (f.batchName || 'Default Batch') === currentCategory);
 
         if (filteredFiles.length === 0) {
             historyList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 100px;"><p>No files in this category.</p></div>';
