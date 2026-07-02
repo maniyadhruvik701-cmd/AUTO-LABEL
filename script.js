@@ -81,10 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.getElementById('progress-text');
 
     // Dynamic Server URL
-    // If opened as a file, use localhost. If hosted, use autolabel.tapee.in
+    // If opened as a file, use localhost. If hosted (e.g. autolabel.tapee.in), use Ngrok.
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
-        : 'https://autolabel.tapee.in';
+        : 'https://gills-placidly-outcome.ngrok-free.dev';
     let uploadedFiles = [];
     let stagedFiles = [];
     let isLoading = true;
