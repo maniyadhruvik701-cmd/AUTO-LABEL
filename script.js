@@ -81,12 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.getElementById('progress-text');
 
     // Dynamic Server URL
-    // If opened as a file, use localhost. If hosted (GitHub Pages/Ngrok), use the specific Ngrok URL.
+    // If opened as a file, use localhost. If hosted, use autolabel.tapee.in
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
-        : (window.location.hostname.includes('github.io')
-            ? 'https://direction-hamstring-grandpa.ngrok-free.dev'
-            : window.location.origin);
+        : 'https://autolabel.tapee.in';
     let uploadedFiles = [];
     let stagedFiles = [];
     let isLoading = true;
