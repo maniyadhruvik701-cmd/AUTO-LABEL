@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // If opened as a file, use localhost. If hosted (e.g. autolabel.tapee.in), use Ngrok.
     const serverUrl = window.location.protocol === 'file:'
         ? 'http://localhost:3001'
-        : 'https://gills-placidly-outcome.ngrok-free.dev';
+        : 'https://collide-moonstone-passage.ngrok-free.dev';
     let uploadedFiles = [];
     let stagedFiles = [];
     let isLoading = true;
